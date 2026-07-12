@@ -181,6 +181,7 @@ private fun searchSourceLabel(source: SearchSource): String {
         SearchSource.YOUTUBE_MUSIC -> stringResource(R.string.explore_tag_youtube_music)
         SearchSource.NETEASE -> stringResource(R.string.platform_netease_short)
         SearchSource.BILIBILI -> stringResource(R.string.platform_bilibili)
+        SearchSource.KUGOU -> stringResource(R.string.platform_kugou)
     }
 }
 
@@ -568,6 +569,11 @@ fun ExploreScreen(
                                 offlineMode = offlineMode,
                                 isTabletLayout = isTabletLayout
                             )
+                        }
+                        SearchSource.KUGOU -> {
+                            Box(Modifier.fillMaxSize(), Alignment.Center) {
+                                Text(stringResource(R.string.explore_bili_desc), style = MaterialTheme.typography.bodyLarge)
+                            }
                         }
                     }
                 }

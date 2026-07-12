@@ -66,6 +66,7 @@ object SearchManager {
         val searchResults = buildList {
             addAll(searchCandidates(songName, searchApi(MusicPlatform.QQ_MUSIC), "qq"))
             addAll(searchCandidates(songName, searchApi(MusicPlatform.CLOUD_MUSIC), "cloud"))
+            addAll(searchCandidates(songName, searchApi(MusicPlatform.KUGOU), "kugou"))
         }
         if (searchResults.isEmpty()) {
             return@withContext null

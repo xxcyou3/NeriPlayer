@@ -224,6 +224,7 @@ internal const val PLAYBACK_PROGRESS_UPDATE_INTERVAL_MS = 80L
 object PlayerManager {
     const val BILI_SOURCE_TAG = "Bilibili"
     const val NETEASE_SOURCE_TAG = "Netease"
+    const val KuGou_SOURCE_TAG = "KuGou"
 
     internal data class UsbExclusiveLoudPlaybackConfirmation(
         val id: Long,
@@ -580,6 +581,7 @@ object PlayerManager {
 
     val cloudMusicSearchApi by lazy { AppContainer.cloudMusicSearchApi }
     val qqMusicSearchApi by lazy { AppContainer.qqMusicSearchApi }
+    val kuGouSearchApi by lazy { AppContainer.kugouSearchApi }
     val lrcLibClient by lazy { AppContainer.lrcLibClient }
     val amllTtmlClient by lazy { AppContainer.amllTtmlClient }
 
@@ -1198,6 +1200,10 @@ object PlayerManager {
     internal fun isBiliTrack(song: SongItem): Boolean {
         return song.channelId == ListenTogetherChannels.BILIBILI ||
             song.album.startsWith(BILI_SOURCE_TAG)
+    }
+
+    internal fun isKugouTrack(song: SongItem): Boolean {
+        return song.channelId == "kugou" || song.matchedLyricSource == MusicPlatform.KUGOU
     }
     internal fun shouldPersistEmbeddedLyrics(song: SongItem): Boolean {
         return song.matchedLyric != null ||

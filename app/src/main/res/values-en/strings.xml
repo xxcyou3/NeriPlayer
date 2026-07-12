@@ -2066,4 +2066,5 @@
 
     <!-- About -->
     <string name="about_app_footer">NeriPlayer • GPLv3 • Powered by You</string>
+    <string name="platform_kugou">Kugou Music</string>
 </resources>
