@@ -111,6 +111,15 @@ class KugouClientWrapper(
         }
         lastSnapshot = persisted
         NPLogger.d(TAG, "Seeded ${persisted.size} cookies from repository.")
+        if (sdk.cookieJar.getDev() == "") {
+            NPLogger.d(TAG, "DevName is unset, set deviceName...")
+            try {
+                sdk.cookieJar.setDev(Build.MANUFACTURER + Build.DEVICE)
+                NPLogger.d(TAG, "DevName set OK, dev=${sdk.cookieJar.getDev()}")
+            } catch (e: Exception) {
+                NPLogger.w(TAG, "Failed to set deviceName: ${e.message}")
+            }
+        }
         if (sdk.cookieJar.getDfid() == "-") {
             NPLogger.d(TAG, "dfid is unset, registering device...")
             try {
@@ -276,6 +285,9 @@ class KugouClientWrapper(
      */
     fun getCookies(): Map<String, String> = sdk.cookieJar.getAll()
 
+    fun dumpCookies() {
+        sdk.cookieJar.dump()
+    }
     // ── Device info gathering ──────────────────────────────────────
 
     private data class DeviceInfo(

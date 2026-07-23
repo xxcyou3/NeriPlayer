@@ -29,6 +29,14 @@ internal fun PlayerManager.effectiveBiliQuality(): String {
     )
 }
 
+internal fun PlayerManager.effectiveKuGouQuality(): String {
+    return resolveTrafficAwareQuality(
+        source = PlaybackAudioSource.KUGOU,
+        defaultQuality = kuGouPreferredQuality
+    )
+}
+
+
 private fun PlayerManager.resolveTrafficAwareQuality(
     source: PlaybackAudioSource,
     defaultQuality: String

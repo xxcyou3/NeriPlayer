@@ -54,6 +54,7 @@ import moe.ouom.neriplayer.data.model.sameIdentityAs
 import moe.ouom.neriplayer.data.platform.youtube.extractYouTubeMusicVideoId
 import moe.ouom.neriplayer.data.model.SongItem
 import moe.ouom.neriplayer.core.logging.NPLogger
+import moe.ouom.neriplayer.core.player.quality.effectiveKuGouQuality
 import java.io.File
 
 private const val OFFLINE_CACHE_URL_PREFIX = "http://offline.cache/"
@@ -1048,33 +1049,65 @@ private suspend fun PlayerManager.getKugouAudioUrl(
 ): SongUrlResult {
     return withContext(Dispatchers.IO) {
         try {
+            val effectiveQuality = effectiveKuGouQuality()
             val hash = song.audioId ?: return@withContext SongUrlResult.Failure
 
-            val response = AppContainer.kugouClient.getSongUrl(
-                hash = hash,
-                quality = "128"
-            )
-
-            Log.d("NERI-PlayerManager","hash $hash res:${response.body}")
-
-            if (response.status != 200) {
-                return@withContext SongUrlResult.Failure
+            // 尝试用户选择的音质，失败则降级到 128
+            val qualityCandidates = if (effectiveQuality == "128") {
+                listOf("128")
+            } else {
+                listOf(effectiveQuality, "128")
             }
 
-            val data = response.body
-            val url = data["url"]?.jsonArray?.firstOrNull()?.jsonPrimitive?.content
-                ?: data["backupUrl"]?.jsonArray?.firstOrNull()?.jsonPrimitive?.content
+            for ((index, quality) in qualityCandidates.withIndex()) {
+                val response = AppContainer.kugouClient.getSongUrl(
+                    hash = hash,
+                    quality = quality
+                )
 
-            if (url.isNullOrBlank()) {
-                return@withContext SongUrlResult.Failure
+                if (response.status != 200) {
+                    if (index < qualityCandidates.lastIndex) {
+                        NPLogger.w(
+                            "NERI-PlayerManager",
+                            "Kugou 音质 $quality 不可用 (HTTP ${response.status})，降级到 ${qualityCandidates[index + 1]}"
+                        )
+                        continue
+                    }
+                    return@withContext SongUrlResult.Failure
+                }
+
+                val data = response.body
+                val url = data["url"]?.jsonArray?.firstOrNull()?.jsonPrimitive?.content
+                    ?: data["backupUrl"]?.jsonArray?.firstOrNull()?.jsonPrimitive?.content
+
+                if (url.isNullOrBlank()) {
+                    if (index < qualityCandidates.lastIndex) {
+                        NPLogger.w(
+                            "NERI-PlayerManager",
+                            "Kugou 音质 $quality URL 为空，降级到 ${qualityCandidates[index + 1]}"
+                        )
+                        continue
+                    }
+                    return@withContext SongUrlResult.Failure
+                }
+
+                if (quality != effectiveQuality) {
+                    NPLogger.w(
+                        "NERI-PlayerManager",
+                        "Kugou 当前音质不可用，已自动降级: preferred=$effectiveQuality, resolved=$quality"
+                    )
+                }
+
+                return@withContext SongUrlResult.Success(
+                    url = url,
+                    cacheKeyOverride = "kugou_$hash",
+                    mimeType = "audio/mpeg"
+                )
             }
 
-            SongUrlResult.Success(
-                url = url,
-                cacheKeyOverride = "kugou_$hash",
-                mimeType = "audio/mpeg"
-            )
+            SongUrlResult.Failure
         } catch (e: Exception) {
+            NPLogger.e("NERI-PlayerManager", "Kugou URL resolution failed", e)
             SongUrlResult.Failure
         }
     }

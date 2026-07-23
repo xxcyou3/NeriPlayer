@@ -619,6 +619,19 @@ internal fun PlayerManager.initializeImpl(
             }
         }
         ioScope.launch {
+            settingsRepo.kugouAudioQualityFlow.collect { q ->
+                val previousQuality = kuGouPreferredQuality
+                kuGouPreferredQuality = q
+                if (previousQuality != q) {
+                    scheduleQualityRefresh(
+                        source = PlaybackAudioSource.KUGOU,
+                        reason = "kugou_quality_changed"
+                    )
+                }
+            }
+
+        }
+        ioScope.launch {
             settingsRepo.mobileDataFollowDefaultAudioQualityFlow.collect { enabled ->
                 val previousValue = mobileDataFollowDefaultAudioQuality
                 mobileDataFollowDefaultAudioQuality = enabled
@@ -673,6 +686,19 @@ internal fun PlayerManager.initializeImpl(
                     )
                 }
             }
+        }
+        ioScope.launch {
+                settingsRepo.mobileDataKugouAudioQualityFlow.collect { q ->
+                    val previousQuality = mobileDatakuGouPreferredQuality
+                    mobileDatakuGouPreferredQuality = q
+                    if (previousQuality != q) {
+                        scheduleQualityRefresh(
+                            source = PlaybackAudioSource.KUGOU,
+                            reason = "mobile_data_kugou_quality_changed"
+                        )
+                    }
+                }
+
         }
         ioScope.launch {
             settingsRepo.lyriconEnabledFlow.collect { enabled ->

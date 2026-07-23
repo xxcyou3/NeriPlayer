@@ -341,10 +341,12 @@ object PlayerManager {
     internal var preferredQuality: String = "exhigh"
     internal var youtubePreferredQuality: String = "high"
     internal var biliPreferredQuality: String = "high"
+    internal var kuGouPreferredQuality: String = "128"
     internal var mobileDataFollowDefaultAudioQuality = true
     internal var mobileDataNeteaseAudioQuality: String = "standard"
     internal var mobileDataYouTubeAudioQuality: String = "low"
     internal var mobileDataBiliAudioQuality: String = "low"
+    internal var mobileDatakuGouPreferredQuality: String = "128"
     internal var playbackFadeInEnabled = false
     internal var playbackCrossfadeNextEnabled = false
     internal var playbackFadeInDurationMs = DEFAULT_FADE_DURATION_MS

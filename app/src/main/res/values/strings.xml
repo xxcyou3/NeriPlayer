@@ -2074,4 +2074,5 @@
     <string name="settings_audio_quality_viper_tape">蝰蛇母带</string>
     <string name="settings_audio_quality_super">DSD 格式音频</string>
     <string name="settings_kugou_audio_quality">酷狗音质</string>
+    <string name="login">登录</string>
 </resources>

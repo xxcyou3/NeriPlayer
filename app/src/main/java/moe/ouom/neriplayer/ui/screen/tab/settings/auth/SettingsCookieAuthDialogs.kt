@@ -411,16 +411,9 @@ internal fun SettingsKugouAuthDialogs(
             inlineMsg = inlineMsg,
             onInlineMsgChange = onInlineMsgChange,
             onDismiss = onDismissSheet,
-            browserTabLabel = stringResource(R.string.login_qr),
-            browserButtonLabel = "打开扫码登录",
-            browserHintContent = {
-                Text(
-                    "使用酷狗音乐 App 扫描二维码登录",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(Modifier.height(12.dp))
-            },
+            browserTabLabel = stringResource(R.string.login),
+            browserButtonLabel = "打开登录界面",
+            browserHintContent = {},
             cookieLabel = "粘贴 Cookie（key=value 格式，每行一对）",
             onBrowserLogin = launchBrowserLogin,
             onSaveCookie = { rawCookie ->

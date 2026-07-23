@@ -171,7 +171,7 @@ class KugouLoginActivity : ComponentActivity() {
     @Composable
     private fun KugouLoginScreen() {
         var selectedTab by rememberSaveable { mutableIntStateOf(0) }
-        val tabLabels = listOf("扫码登录", "验证码登录", "密码登录")
+        val tabLabels = listOf("扫码登录", "验证码登录", "密码登录", "刷新Token")
 
         Scaffold(
             topBar = {
@@ -217,6 +217,7 @@ class KugouLoginActivity : ComponentActivity() {
                         0 -> QrLoginContent()
                         1 -> PhoneCodeLoginContent()
                         2 -> PasswordLoginContent()
+                        3 -> TokenRefreshContent()
                     }
                 }
             }
@@ -550,7 +551,9 @@ class KugouLoginActivity : ComponentActivity() {
                         }
                     },
                     enabled = phone.length >= 11 && countdown == 0 && !isSendingCode && !isLoggingIn,
-                    modifier = Modifier.height(56.dp).padding(top = 15.dp)
+                    modifier = Modifier
+                        .height(56.dp)
+                        .padding(top = 15.dp)
                 ) {
                     if (isSendingCode) {
                         CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
@@ -843,6 +846,150 @@ class KugouLoginActivity : ComponentActivity() {
         } catch (e: Exception) {
             NPLogger.e(TAG, "loginByPassword failed", e)
             onError("登录失败: ${e.message}")
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    //  Token Refresh
+    // ─────────────────────────────────────────────────────────────
+
+    @Composable
+    private fun TokenRefreshContent() {
+        var isRefreshing by remember { mutableStateOf(false) }
+        var errorMessage by remember { mutableStateOf<String?>(null) }
+        var successMessage by remember { mutableStateOf<String?>(null) }
+
+        val scope = rememberCoroutineScope()
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(Modifier.height(16.dp))
+
+            Icon(
+                imageVector = Icons.Outlined.Lock,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            Text(
+                text = "使用已有 Token 刷新登录状态",
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            Text(
+                text = "将从本地存储读取已保存的 Token 和 UserId 进行刷新。\n适用于 Token 过期但 UserId 仍有效的情况。",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(Modifier.height(24.dp))
+
+            Button(
+                onClick = {
+                    isRefreshing = true
+                    errorMessage = null
+                    successMessage = null
+                    scope.launch {
+                        doTokenRefresh(
+                            onSuccess = {
+                                isRefreshing = false
+                                successMessage = "Token 刷新成功"
+                            },
+                            onError = { msg ->
+                                isRefreshing = false
+                                errorMessage = msg
+                            }
+                        )
+                    }
+                },
+                enabled = !isRefreshing,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+            ) {
+                if (isRefreshing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(Modifier.width(8.dp))
+                }
+                Text("刷新 Token")
+            }
+
+            // Error message
+            AnimatedVisibility(visible = errorMessage != null) {
+                Text(
+                    text = errorMessage ?: "",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(top = 12.dp)
+                )
+            }
+
+            // Success message
+            AnimatedVisibility(visible = successMessage != null) {
+                Text(
+                    text = successMessage ?: "",
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(top = 12.dp)
+                )
+            }
+        }
+    }
+
+    private suspend fun doTokenRefresh(
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        try {
+            // 从已保存的 Cookie 中读取 token 和 userid
+            kugouClient.seedFromRepository()
+            kugouClient.dumpCookies()
+
+            val response = withContext(Dispatchers.IO) {
+                kugouClient.auth.loginByToken()
+            }
+            if (response.status != 200) {
+                onError("请求失败: HTTP ${response.status},${response.body}")
+                return
+            }
+            val errCode = response.body["err_code"]?.jsonPrimitive?.intOrNull
+                ?: response.body["status"]?.jsonPrimitive?.intOrNull ?: -1
+            if (errCode != 0 && errCode != 1) {
+                val msg = response.body["error"]?.jsonPrimitive?.content
+                    ?: response.body["msg"]?.jsonPrimitive?.content
+                    ?: "刷新失败 (code=$errCode)"
+                onError(msg)
+                return
+            }
+            val data = response.body["data"]?.jsonObject
+            val newToken = data?.get("token")?.jsonPrimitive?.content ?: ""
+            val newUserid = data?.get("userid")?.jsonPrimitive?.content ?: "0"
+            NPLogger.d(TAG, "Data=$data Token=$newToken, newUserid=$newUserid")
+            if (newToken.isBlank() || newUserid.isBlank() || newUserid == "0") {
+                onError("刷新响应缺少 token 或 userid")
+                return
+            }
+            NPLogger.d("${ kugouClient.youth.getUnionVip() }")
+            onSuccess()
+            handleLoginSuccess(newToken, newUserid)
+        } catch (e: Exception) {
+            NPLogger.e(TAG, "loginByToken failed", e)
+            onError("刷新失败: ${e.message}")
         }
     }
 }
