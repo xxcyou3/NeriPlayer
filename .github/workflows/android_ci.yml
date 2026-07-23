@@ -157,6 +157,10 @@ jobs:
         if: github.event_name == 'pull_request'
         run: ./gradlew :app:assembleRelease -PallowUnsignedRelease=true --warning-mode all --stacktrace
 
+      - name: Build unsigned Release (workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        run: ./gradlew :app:assembleRelease -PallowUnsignedRelease=true --warning-mode all --stacktrace
+
       - name: Build signed Release for master
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |
@@ -168,7 +172,7 @@ jobs:
             --warning-mode all --stacktrace
 
       - name: Upload Release APK
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/master'
         uses: actions/upload-artifact@v4
         with:
           name: neri-apk
